@@ -11,9 +11,9 @@
   const P = new URLSearchParams(location.search);
   let ROOM = '';
   let TOPIC = '';
-  const BROKER = localStorage.getItem('wp_broker') || 'wss://broker.emqx.io:8084/mqtt';
+  const BROKER = P.get('broker') || localStorage.getItem('wp_broker') || 'wss://broker.emqx.io:8084/mqtt';
   const TURN_MS = 60000;
-  const VER = 'v22';
+  const VER = 'v23';
 
   let pid = (typeof P !== 'undefined' && P.get('pid')) || localStorage.getItem('wp_pid');
   if (!pid) { pid = 'p' + Math.random().toString(36).slice(2, 9); localStorage.setItem('wp_pid', pid); }
