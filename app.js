@@ -13,7 +13,7 @@
   let TOPIC = '';
   const BROKER = localStorage.getItem('wp_broker') || 'wss://broker.emqx.io:8084/mqtt';
   const TURN_MS = 60000;
-  const VER = 'v18';
+  const VER = 'v20';
 
   let pid = localStorage.getItem('wp_pid');
   if (!pid) { pid = 'p' + Math.random().toString(36).slice(2, 9); localStorage.setItem('wp_pid', pid); }
@@ -68,10 +68,22 @@
 
     if (m.t === 'state') {
       if (m.from === pid) return;                 // 自己的广播忽略
-      // 双房主仲裁：pid 小的让位
-      if (isHost && m.state.host && m.state.host !== pid) {
-        if (String(m.state.host) < String(pid)) { isHost = false; hostState = null; }
-        else return;
+      // 双房主仲裁：pid 小的当房主；pid 大的让位并采纳对方状态，绝不"互不理睬"
+      const oh = m.state.host;
+      if (isHost && oh && oh !== pid) {
+        const otherN = (m.state.seats || []).length, mineN = hostState.seats.length;
+        // 座位多者胜；相同则 pid 小者胜
+        const otherWins =
+          otherN > mineN || (otherN === mineN && String(oh) < String(pid));
+        if (otherWins) {
+          isHost = false; hostState = null;
+        } else {
+          // 我继续当房主，但把对方的人并进来，避免丢人
+          (m.state.seats || []).forEach(x => {
+            if (!hostState.seats.some(y => y.pid === x.pid)) hJoin(x.pid, x.name);
+          });
+          return;
+        }
       }
       if (!state || (m.state.v | 0) >= (state.v | 0)) {
         state = m.state; lastStateAt = Date.now();
@@ -493,16 +505,16 @@
   }
   function dirText() { return location.origin + location.pathname; }
 
-  function startRoom(code) {
+  function startRoom(code, fast) {
     home.classList.add('hidden');
     ROOM = code; TOPIC = 'gzpoker/v1/' + ROOM;
     log_('进入房间 ' + ROOM);
     boot();
-    doJoin(myName);
+    doJoin(myName, fast);
   }
   function log_(m) { try { console.log('[官庄POKER]', m); } catch (e) {} }
 
-  function doJoin(v) {
+  function doJoin(v, fast) {
     myName = v;
     if (isHost) hJoin(pid, myName); else sendJoin();
     setTimeout(() => {
@@ -511,7 +523,7 @@
         if (state.host === pid) { isHost = true; hostState = state; hJoin(pid, myName); }
         else sendJoin();
       }
-    }, 1200);
+    }, fast ? 1200 : 4000);
   }
 
   $('goCreate').onclick = () => showPane('create');
@@ -522,13 +534,13 @@
   $('doCreate').onclick = () => {
     if (!takeName('createName')) return;
     wantBots = $('createBots').checked ? 3 : 0;
-    startRoom(genCode());
+    startRoom(genCode(), true);
   };
   $('doJoinRoom').onclick = () => {
     if (!takeName('joinName')) return;
     const c = String($('joinCode').value || '').replace(/\D/g, '').slice(0, 4);
     if (c.length !== 4) { homeHint.textContent = '请输入 4 位数字房间号'; $('joinCode').focus(); return; }
-    startRoom(c);
+    startRoom(c, false);
   };
   $('createName').onkeydown = e => { if (e.key === 'Enter') $('doCreate').click(); };
   $('joinName').onkeydown = e => { if (e.key === 'Enter') $('joinCode').focus(); };
