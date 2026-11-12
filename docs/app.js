@@ -13,7 +13,7 @@
   let TOPIC = '';
   const BROKER = localStorage.getItem('wp_broker') || 'wss://broker.emqx.io:8084/mqtt';
   const TURN_MS = 60000;
-  const VER = 'v20';
+  const VER = 'v21';
 
   let pid = localStorage.getItem('wp_pid');
   if (!pid) { pid = 'p' + Math.random().toString(36).slice(2, 9); localStorage.setItem('wp_pid', pid); }
@@ -288,6 +288,8 @@
     try { renderInner(); } catch (e) { console.warn(e); }
   }
   function renderInner() {
+    if (!state.drinks) state.drinks = {};
+    if (!state.log) state.log = [];
     $('roomTag').textContent = ROOM ? ('房间 ' + ROOM) : '房间 —';
     if (!state) return;
     const seats = state.seats || [];
