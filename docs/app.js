@@ -13,9 +13,9 @@
   let TOPIC = '';
   const BROKER = localStorage.getItem('wp_broker') || 'wss://broker.emqx.io:8084/mqtt';
   const TURN_MS = 60000;
-  const VER = 'v21';
+  const VER = 'v22';
 
-  let pid = localStorage.getItem('wp_pid');
+  let pid = (typeof P !== 'undefined' && P.get('pid')) || localStorage.getItem('wp_pid');
   if (!pid) { pid = 'p' + Math.random().toString(36).slice(2, 9); localStorage.setItem('wp_pid', pid); }
   let myName = localStorage.getItem('wp_name') || '';
 
