@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>官庄POKER · 喝水局</title>
+<style>
+:root{
+  --felt:#0f3d2e; --felt2:#0a2b20; --gold:#e8c072; --ink:#eaf2ee;
+  --red:#e2534a; --blue:#5b8def; --dim:#8fa79c; --panel:#123a2c;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;height:100dvh}
+body{margin:0;height:100dvh;overflow:hidden;background:radial-gradient(ellipse at 50% 0%,#14miss,#0a2b20);
+  background:radial-gradient(ellipse at 50% 20%,#15574380,#071f17),#071f17;
+  color:var(--ink);font:15px/1.45 -apple-system,"PingFang SC","Microsoft Yahei",sans-serif;
+  display:flex;flex-direction:column;overscroll-behavior:none}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+  border-bottom:1px solid #ffffff14;background:#08251c99;backdrop-filter:blur(8px)}
+.brand{font-weight:700;letter-spacing:.5px}
+.meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim)}
+.dot{width:8px;height:8px;border-radius:50%;background:#666;transition:.3s}
+.dot.on{background:#3fd07a;box-shadow:0 0 8px #3fd07a}
+.dot.err{background:#e2534a}
+main{flex:1;display:flex;min-height:0}
+.table{flex:1;display:flex;flex-direction:column;padding:8px;min-height:0;gap:6px;overflow:hidden}
+.stage{position:relative;flex:1;min-height:0}
+.seats{position:absolute;inset:0;pointer-events:none;z-index:2}
+.center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;
+  align-items:center;gap:8px;width:100%;z-index:1}
+.seat{background:#093024d9;border:1px solid #ffffff1f;border-radius:10px;padding:4px 7px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;position:absolute;
+  transform:translate(-50%,-50%);pointer-events:auto;transition:.2s;min-width:66px;max-width:104px}
+.seat .row1{display:flex;align-items:center;gap:3px;max-width:100%}
+.seat.head{border-color:#e8c072;box-shadow:0 0 0 1px #e8c07266,0 0 14px #e8c07233}
+.seat.acting{border-color:#ff5a4d;box-shadow:0 0 0 2px #ff5a4d66,0 0 16px #ff5a4d44}
+.seat.acting.head{border-color:#ff7b52;box-shadow:0 0 0 2px #ff5a4d66,0 0 0 4px #e8c07244}
+.turnMark{color:var(--red);font-size:10px;animation:pulse2 1s ease-in-out infinite;margin-left:2px}
+.mark{background:#e8c072;color:#25301f;font-size:9px;font-weight:800;border-radius:4px;padding:0 3px;line-height:13px}
+.seat.acting{border-color:var(--gold);box-shadow:0 0 0 2px #e8c07240,0 0 14px #e8c07230}
+.seat.folded{opacity:.38}
+.seat .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:84px}
+.seat .bet{font-size:11px;color:var(--gold);white-space:nowrap}
+.seat .st{font-size:10px;color:var(--dim);white-space:nowrap}
+.seat .mini{display:inline-flex;gap:2px}
+.bt{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;
+  background:#f0f4f2;color:#0a2b20;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:0;overflow:auto}
+.board{display:flex;gap:8px}
+.pot{font-size:12px;color:var(--gold)}
+.card{width:clamp(34px,11.5vw,50px);aspect-ratio:.72;border-radius:7px;background:#f7f9f8;color:#16211c;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:800;box-shadow:0 3px 8px #0006;user-select:none;position:relative}
+.card b{font-size:clamp(15px,4.8vw,21px);line-height:1}
+.card span{font-size:clamp(11px,3.6vw,16px);line-height:1}
+.card.red{color:var(--red)}
+.card.back{background:linear-gradient(135deg,#1d5c47,#0d3b2c);border:1px solid #3b7a62}
+.card.back::after{content:"💧";font-size:18px;opacity:.5}
+.card.empty{background:#ffffff0d;box-shadow:none;border:1px dashed #ffffff20}
+.mini .card{width:26px;height:36px;border-radius:5px}
+.mini .card b{font-size:12px}
+.mini .card span{font-size:9px}
+.me{display:flex;align-items:center;justify-content:center;gap:10px;padding:4px;flex:none}
+.me .cards{display:flex;gap:8px}
+.me.head .cards .card{box-shadow:0 0 0 3px #e8c07288,0 3px 10px #0007}
+.me .lbl{font-size:12px;color:var(--dim);text-align:center}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:520px;margin:0 auto;width:100%;
+  padding:8px 8px calc(12px + env(safe-area-inset-bottom));flex:none}
+.actions button{width:100%;min-height:48px;font-size:15px;letter-spacing:.5px;padding:10px 6px}
+@keyframes dealIn{0%{opacity:0;transform:translate3d(0,-26px,0) scale(.78) rotate(-9deg)}
+  55%{opacity:1;transform:translate3d(0,3px,0) scale(1.06) rotate(1.5deg)}
+  78%{transform:translate3d(0,-1px,0) scale(.99) rotate(-.5deg)}
+  100%{opacity:1;transform:none}}
+@keyframes flipIn{0%{transform:rotateY(180deg) scale(.92)}
+  70%{transform:rotateY(-8deg) scale(1.02)}
+  100%{transform:rotateY(0deg) scale(1)}}
+@keyframes bump{0%{transform:scale(1)}35%{transform:scale(1.16)}100%{transform:scale(1)}}
+@keyframes glow{0%,100%{box-shadow:0 0 0 2px var(--red),0 0 6px rgba(226,83,74,.35)}
+  50%{box-shadow:0 0 0 3px #ff8a7e,0 0 18px rgba(226,83,74,.8)}}
+@keyframes floatIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes pulse2{0%,100%{opacity:.55}50%{opacity:1}}
+.card.new{animation:dealIn .62s cubic-bezier(.22,.9,.3,1.15) both}
+.card.flip{backface-visibility:hidden;transform-style:preserve-3d;
+  animation:flipIn .66s cubic-bezier(.34,.85,.35,1) both}
+.card.flip::after{content:'';position:absolute;inset:0;border-radius:inherit;backface-visibility:hidden;
+  transform:rotateY(180deg);background:linear-gradient(135deg,#1d5c47,#0d3b2c);border:1px solid #3b7a62}
+.pot.bump{animation:bump .42s ease-out}
+.seat.acting{animation:glow 1.4s ease-in-out infinite}
+.seat{transition:background .18s,transform .18s}
+.result .rrow{animation:floatIn .22s ease-out both}
+.slot,.card.empty{animation:pulse2 2.4s ease-in-out infinite}
+.card.empty{border:1px dashed #ffffff26;background:#ffffff0d;box-shadow:none}
+button{font:inherit;border:0;border-radius:12px;padding:12px 14px;font-weight:700;min-height:46px;
+  background:#1c4c3b;color:var(--ink);transition:.15s;cursor:pointer}
+button:active{transform:scale(.97)}
+button.p{background:linear-gradient(180deg,#2b7a56,#1d5c40);color:#eaffe9}
+button.g{background:linear-gradient(180deg,#e8c072,#c99b46);color:#26301f}
+button.r{background:linear-gradient(180deg,#a83a34,#83231f);color:#ffe9e7}
+button.ghost{background:#ffffff10}
+button[disabled]{opacity:.35;pointer-events:none}
+button.wide{width:100%}
+.hint{text-align:center;font-size:12px;color:var(--dim);padding-bottom:6px;min-height:18px}
+.side{width:264px;display:flex;flex-direction:column;gap:8px;padding:8px 8px 12px 0}
+.panel{background:#093024aa;border:1px solid #ffffff10;border-radius:12px;padding:8px 10px;overflow:auto}
+.panel h3{margin:0 0 6px;font-size:12px;color:var(--gold);font-weight:700;letter-spacing:1px}
+.row{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:3px 0;border-bottom:1px dashed #ffffff0e}
+.row .r2{color:var(--gold);font-weight:700}
+#log{font-size:11px;color:#b8ccc3;max-height:180px;overflow:auto}
+#log div{padding:1px 0;border-bottom:1px dotted #ffffff08}
+.modal{position:fixed;inset:0;background:#02120de8;display:flex;align-items:center;justify-content:center;padding:16px;z-index:9}
+.modal.hidden{display:none}
+.logo{font-size:26px;font-weight:900;letter-spacing:2px;text-align:center;margin-bottom:2px}
+.sub{text-align:center;font-size:12px;color:var(--dim);margin:0 0 16px}
+#codeRow{display:flex;gap:8px;margin-top:10px}
+#codeRow input{flex:1;text-transform:uppercase;letter-spacing:2px;font-weight:700}
+#codeRow button{flex:none;padding:12px 18px}
+.chk{display:flex;align-items:center;gap:8px;font-size:12px;color:#9db8ac;margin:12px 0}
+.chk input{width:auto}
+.ver{margin-top:12px;font-size:10px;color:#5c7a6c;text-align:center}
+.nettx{font-size:11px;color:#8fa79c}
+.hint2{text-align:center;font-size:12px;color:#ff8a7a;min-height:16px;margin-top:8px}
+.rules{margin:14px 0 0;font-size:12px;line-height:1.9;color:#9db8ac;background:#0000002e;border-radius:10px;padding:10px 12px}
+.mini-btn{background:#ffffff14;border:0;color:#cfe3d9;font-size:11px;padding:4px 8px;border-radius:8px;cursor:pointer}
+.mini-btn:active{background:#ffffff28}
+.sheet{background:#0d3126;border:1px solid #ffffff18;border-radius:18px;padding:20px;width:100%;max-width:380px;box-shadow:0 20px 60px #000a}
+.sheet h2{margin:0 0 4px;font-size:19px}
+.sheet p{margin:0 0 14px;color:var(--dim);font-size:13px}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #ffffff20;background:#072019;color:var(--ink);font:inherit}
+.tag{display:inline-block;padding:1px 6px;border-radius:6px;font-size:11px;background:#ffffff14;margin-left:4px}
+.result{width:100%;max-width:520px;max-height:34vh;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:4px;padding:0 6px}
+.rrow{display:flex;align-items:center;gap:8px;background:#093024aa;border:1px solid #ffffff12;border-radius:9px;padding:6px 9px;font-size:13px;flex:none}
+.rrow.win{border-color:var(--gold);box-shadow:inset 0 0 0 1px #e8c07255}
+.rrow .rn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rrow .rh{font-size:11px;color:#9db8ac;flex:none}
+.rrow .rd{font-weight:800;color:#ffd479;flex:none}
+.hn{font-size:11px;color:#8fe0b0;font-weight:700}
+.me .cards{cursor:pointer}
+.me .cards:active{opacity:.7}
+@media (max-width:760px){
+  .side{display:none}
+  .actions button{min-height:50px;font-size:15px}
+  .seat{padding:3px 5px;min-width:58px;max-width:92px}
+  .seat .nm{max-width:62px;font-size:11px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">🀄 官庄POKER</div>
+  <div class="meta">
+    <span id="roomTag">房间 —</span>
+    <span id="netTxt" class="nettx">连接中…</span>
+    <button class="mini-btn" id="inviteBtn">邀请</button>
+    <button class="mini-btn" onclick="location.search=''">换房</button>
+    <span id="conn" class="dot"></span>
+  </div>
+</header>
+<main>
+  <section class="table">
+    <div class="stage">
+      <div id="opps" class="seats"></div>
+      <div class="center">
+      <div id="board" class="board"></div>
+      <div id="pot" class="pot">底池 0 份</div>
+        <div id="result" class="result"></div>
+      </div>
+    </div>
+    <div id="me" class="me"></div>
+    <div id="actions" class="actions"></div>
+    <div id="hint" class="hint"></div>
+  </section>
+  <aside class="side">
+    <div class="panel"><h3>喝水榜（累计）</h3><div id="scores"></div></div>
+    <div class="panel"><h3>牌局记录</h3><div id="log"></div></div>
+  </aside>
+</main>
+
+<div id="home" class="modal">
+  <div class="sheet">
+    <div class="logo">🀄 官庄POKER</div>
+    <p class="sub">三张牌 · 三阶公牌 · 输家喝水</p>
+
+    <div id="pickPane">
+      <button class="wide g" id="goCreate">创建房间</button>
+      <div style="height:10px"></div>
+      <button class="wide p" id="goJoin">加入房间</button>
+      <div class="rules">
+        <b style="color:#e8c072">规则速览</b><br>
+        · 每人 2 张私牌 + 台面 3 张公牌（逐张发，每张一轮下注）<br>
+        · 只比最强 3 张：同花顺 &gt; 三条 &gt; 顺子 &gt; 同花 &gt; 一对 &gt; 高牌<br>
+        · 每人每手 8 份筹码 = 1 杯水；下注 1 份、抬注 +1 份、每人每街最多抬 1 次<br>
+        · 输家按投入喝水（<b style="color:#ffd479">最低 1/8 杯</b>）；弃牌喝一半；<b style="color:#8fe0b0">赢家不喝</b>
+      </div>
+    </div>
+
+    <div id="createPane" style="display:none">
+      <input id="createName" maxlength="8" placeholder="你的昵称">
+      <label class="chk"><input type="checkbox" id="createBots" checked> 自动加入 3 个机器人</label>
+      <button class="wide g" id="doCreate">创建房间</button>
+      <div style="height:8px"></div>
+      <button class="wide ghost" id="backFromCreate">返回</button>
+    </div>
+
+    <div id="joinPane" style="display:none">
+      <input id="joinName" maxlength="8" placeholder="你的昵称">
+      <div id="codeRow">
+        <input id="joinCode" maxlength="4" inputmode="numeric" placeholder="4 位房间号">
+        <button class="p" id="doJoinRoom">加入</button>
+      </div>
+      <div style="height:8px"></div>
+      <button class="wide ghost" id="backFromJoin">返回</button>
+    </div>
+
+    <div id="homeHint" class="hint2"></div>
+    <div id="verTag" class="ver"></div>
+  </div>
+</div>
+
+<script src="mqtt.min.js?v=18"></script>
+<script src="engine.js?v=18"></script>
+<script src="bot.js?v=18"></script>
+<script src="net.js?v=18"></script>
+<script src="app.js?v=18"></script>
+</body>
+</html>
